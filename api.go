@@ -1,4 +1,4 @@
-package tmqp_api
+package tmqp
 
 import (
 	"bufio"
@@ -10,7 +10,7 @@ import (
 
 func Handshake() {
 
-	conn, err := net.Dial("tcp", ":7788")
+	conn, err := net.Dial("tcp", ":4000")
 	checkError(err)
 	defer conn.Close()
 
@@ -29,9 +29,6 @@ func handleConn(conn net.Conn) {
 
 	if strings.Compare(msg, "START\n") == 0 {
 		_, err = conn.Write([]byte("START OK\n"))
-		for {
-			_, err = conn.Write([]byte("TESTE!\n"))
-		}
 	}
 
 	checkError(err)
