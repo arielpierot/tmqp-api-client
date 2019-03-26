@@ -223,42 +223,50 @@ func consumeQueue(conn net.Conn, queue string) {
 
 	for {
 
-		size_bytes := make([]byte, SIZE)
-		_, err := conn.Read(size_bytes[0:SIZE])
+		type_byte := make([]byte, TYPE)
+		_, err := conn.Read(type_byte[0:TYPE])
 
-		if err != nil {
-			fmt.Println("CONNECTION LOST WITH SERVER!")
-			os.Exit(1)
-		} else {
+		if err == nil {
 
-			size_package := binary.LittleEndian.Uint32(size_bytes[0:SIZE])
+			type_package := int(type_byte[0])
 
-			content_bytes := make([]byte, size_package)
-
-			// fmt.Println("SIZEx: ", size_package)
-
-			_, err := conn.Read(content_bytes[0:size_package])
+			size_bytes := make([]byte, SIZE)
+			_, err := conn.Read(size_bytes[0:SIZE])
 
 			if err != nil {
-				fmt.Println("ERROR - CONTEUDO: ", err)
+				fmt.Println("CONNECTION LOST WITH SERVER!")
 				os.Exit(1)
-			} else {
+			} else if type_package == 2 {
 
-				// fmt.Println("IN: ", content_bytes)
+				size_package := binary.LittleEndian.Uint32(size_bytes[0:SIZE])
 
-				message := &Message{}
-				err := proto.Unmarshal(content_bytes, message)
+				content_bytes := make([]byte, size_package)
+
+				// fmt.Println("SIZEx: ", size_package)
+
+				_, err := conn.Read(content_bytes[0:size_package])
 
 				if err != nil {
-					fmt.Println("ERROR - UNMARSHALx: ", err)
-				} else if strings.Compare(message.GetQueue(), queue) == 0 {
-					content_bytes := message.GetContent()
-					output := string(content_bytes)
-					// fmt.Println("<= ", output)
-					fmt.Println(message.GetSender(), "<=", output)
-					fmt.Print("=> ")
+					fmt.Println("ERROR - CONTEUDO: ", err)
+					os.Exit(1)
 				} else {
-					fmt.Println("ERROR: QUEUE NOT FOUND!")
+
+					// fmt.Println("IN: ", content_bytes)
+
+					message := &Message{}
+					err := proto.Unmarshal(content_bytes, message)
+
+					if err != nil {
+						fmt.Println("ERROR - UNMARSHALx: ", err)
+					} else if strings.Compare(message.GetQueue(), queue) == 0 {
+						content_bytes := message.GetContent()
+						output := string(content_bytes)
+						// fmt.Println("<= ", output)
+						fmt.Println(message.GetSender(), "<=", output)
+						fmt.Print("=> ")
+					} else {
+						fmt.Println("ERROR: QUEUE NOT FOUND!")
+					}
 				}
 			}
 		}
