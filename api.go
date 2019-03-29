@@ -17,6 +17,14 @@ const (
 	VERSION        = "TMQP 0.1\n"
 )
 
+type ModelMessage struct {
+	Queue   string
+	Sender  string
+	Content []byte
+}
+
+var messages = make(chan ModelMessage)
+
 func Handshake() net.Conn {
 
 	conn, err := net.Dial("tcp", ":7788")
@@ -166,7 +174,7 @@ func Publish(conn net.Conn, sender string, queue string, content string) {
 
 }
 
-func Consume(conn net.Conn, queue string) {
+func Consume(conn net.Conn, queue string) chan ModelMessage {
 
 	queue = strings.TrimSuffix(queue, "\n")
 	strings.Replace(queue, " ", "", -1)
@@ -217,6 +225,8 @@ func Consume(conn net.Conn, queue string) {
 	} else {
 		fmt.Println("ERROR - WRITE TYPE: ", err)
 	}
+
+	return messages
 }
 
 func consumeQueue(conn net.Conn, queue string) {
@@ -251,19 +261,23 @@ func consumeQueue(conn net.Conn, queue string) {
 					os.Exit(1)
 				} else {
 
-					// fmt.Println("IN: ", content_bytes)
+					// messages <- content_bytes
 
 					message := &Message{}
 					err := proto.Unmarshal(content_bytes, message)
 
+					// fmt.Println("CONTENT: ", message.GetContent())
+
 					if err != nil {
 						fmt.Println("ERROR - UNMARSHALx: ", err)
 					} else if strings.Compare(message.GetQueue(), queue) == 0 {
-						content_bytes := message.GetContent()
-						output := string(content_bytes)
+
+						messages <- ModelMessage{Queue: message.GetQueue(), Sender: message.GetSender(), Content: message.GetContent()}
+						// content_bytes := message.GetContent()
+						// output := string(content_bytes)
 						// fmt.Println("<= ", output)
-						fmt.Println(message.GetSender(), "<=", output)
-						fmt.Print("=> ")
+						// fmt.Println(message.GetSender(), "<=", output)
+						// fmt.Print("=> ")
 					} else {
 						fmt.Println("ERROR: QUEUE NOT FOUND!")
 					}
